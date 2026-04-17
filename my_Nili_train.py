@@ -327,8 +327,8 @@ def test(device, net, test_loader):
             y_pred_test = np.concatenate((y_pred_test, outputs))
             y_test = np.concatenate((y_test, labels))
     features=features[1:,:]
-    sio.savemat('feature/test_features_all_Nili.mat', {'test_features_all': features})
-    sio.savemat('feature/labels_Nili.mat', {'labels': y_test})
+    sio.savemat('test_features_all_Nili.mat', {'test_features_all': features})
+    sio.savemat('labels_Nili.mat', {'labels': y_test})
     print(features.shape,y_test.shape)
     return y_pred_test, y_test
 
@@ -375,7 +375,7 @@ if __name__ == '__main__':
         tic1 = time.perf_counter()
         net, device = train(train_loader,data_labeled_loader, epochs=100)
         # 只保存模型参数
-        torch.save(net.state_dict(), 'cls_params/MCTGCL_params.pth')
+        torch.save(net.state_dict(), 'MCTGCL_params.pth')
         toc1 = time.perf_counter()
         tic2 = time.perf_counter()
         y_pred_test, y_test = test(device, net, test_loader)
@@ -415,4 +415,4 @@ if __name__ == '__main__':
                               ELEMENT_PRE_RES_SS4, AP_RES_SS4,
                               TRAINING_TIME_RES_SS4, TESTING_TIME_RES_SS4,
                               classes_num, ITER,
-                              './records/p_{}_10_Nili_result_train_iter_times_{}shot_CRU_Chikusei_iter_10_true_knn_{}_{}.txt'.format(13,10,temperature,a))
+                              'patch_{}_10_Nili_result_train_iter_times_{}shot_CRU_Chikusei_iter_10_true_knn_{}_{}.txt'.format(13,10,temperature,a))
