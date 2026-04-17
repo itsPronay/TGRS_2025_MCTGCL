@@ -15,10 +15,12 @@ from mctgcl  import mctgcl
 from GCN_model import *
 from sklearn.neighbors import kneighbors_graph
 import  supervised_contrastive_loss
+import os 
+
 def loadData():
     # 读入数据
-    data = sio.loadmat('/media/xd/hdd/ZY/reference/DCFSL-2021-main/datasets/NiLiFossae/NiliFossae.mat')['NiliFossae']
-    labels = sio.loadmat('/media/xd/hdd/ZY/reference/DCFSL-2021-main/datasets/NiLiFossae/NiliFossae_gt_final.mat')['NiliFossae_gt']
+    data = sio.loadmat(os.path.join(os.getcwd(), 'NiliFossae.mat'))['NiliFossae']
+    labels = sio.loadmat(os.path.join(os.getcwd(), 'NiliFossae_gt.mat'))['NiliFossae_gt']
 
     return data, labels
 
