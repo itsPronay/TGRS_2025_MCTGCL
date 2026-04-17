@@ -127,10 +127,7 @@ def get_cls_map(net, device, all_data_loader, y,oa):
 
     y_re = np.reshape(y_list, (y.shape[0], y.shape[1], 3))
     gt_re = np.reshape(y_gt, (y.shape[0], y.shape[1], 3))
-    classification_map(y_re, y, 300,
-                       'classification_maps/' + 'predictions.eps')
-    classification_map(y_re, y, 300,
-                       'classification_maps/' + 'predictions_{}.png'.format(oa))
-    classification_map(gt_re, y, 300,
-                       'classification_maps/' + 'NF_gt.png')
+    classification_map(y_re, y, 300, 'predictions.eps')
+    classification_map(y_re, y, 300, 'predictions_{}.png'.format(oa))
+    classification_map(gt_re, y, 300, 'NF_gt.png')
     print('------Get classification maps successful-------')
