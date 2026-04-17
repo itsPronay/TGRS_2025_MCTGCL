@@ -203,7 +203,7 @@ def aff_to_adj(last_layer_data_src):
     features1 = last_layer_data_src.cpu().detach().numpy()
 
     adj_nei = kneighbors_graph(features1, 10, mode='distance')
-    adj_nei = adj_nei.A
+    adj_nei = adj_nei.toarray()
     sigam=1
     for i in range(adj_nei.shape[0]):
         for j in range(adj_nei.shape[1]):
