@@ -92,7 +92,7 @@ def splitTrainTestSet(X, y, testRatio, randomState=345):
     train_indices = np.zeros_like(y)
     test_indices = np.zeros_like(y)+1
 
-    if args.dataset == 'HC':
+    if args.dataset == 'HO':
         CLASS_NUM = 6
     else: 
         CLASS_NUM=9
@@ -179,7 +179,7 @@ def create_data_loader():
                                                 num_workers=0,
                                               )
     
-    if args.dataset == 'HC':
+    if args.dataset == 'HO':
         CLASS_NUM = 6
     else: 
         CLASS_NUM=9
@@ -260,7 +260,7 @@ def train(train_loader, data_labeled_loader,epochs):
     # 使用GPU训练，可以在菜单 "代码执行工具" -> "更改运行时类型" 里进行设置
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    if args.dataset == 'HC':
+    if args.dataset == 'HO':
         CLASS_NUM = 6
     else: 
         CLASS_NUM=9
@@ -352,7 +352,7 @@ def test(device, net, test_loader):
     y_test = 0
     features=0
 
-    if args.dataset == 'HC':
+    if args.dataset == 'HO':
         CLASS_NUM = 6
     else: 
         CLASS_NUM=9
@@ -386,7 +386,7 @@ def AA_andEachClassAccuracy(confusion_matrix):
 
 def acc_reports(y_test, y_pred_test):
 
-    if args.dataset != 'HC':
+    if args.dataset != 'HO':
         target_names = ['1', '2', '3', '4', '5', '6','7' , '8', '9']
     else:
         target_names = ['1', '2', '3', '4', '5', '6']
@@ -408,7 +408,7 @@ if __name__ == '__main__':
     patch_size = 13
     
     nDataSet = args.number_train
-    if args.dataset == 'HC':
+    if args.dataset == 'HO':
         CLASS_NUM = 6
     else: 
         CLASS_NUM=9
