@@ -6,7 +6,7 @@ from sklearn import metrics
 #import averageAccuracy
 def outputRecord(ELEMENT_ACC_RES_SS4, AA_RES_SS4, OA_RES_SS4, KAPPA_RES_SS4,
                  ELEMENT_PRE_RES_SS4, AP_RES_SS4, TRAINING_TIME_RES_SS4, TESTING_TIME_RES_SS4,
-                 CATEGORY, ITER, path1):
+                 CATEGORY, ITER, path1, dataset_name=None, hyperparameters=None):
     print_matrix = np.zeros((CATEGORY * 2 + 6, ITER + 1), dtype=object)
     print_matrix[0:CATEGORY, 0:ITER] = np.around(ELEMENT_ACC_RES_SS4, 4)
     print_matrix[CATEGORY, 0:ITER] = np.around(AA_RES_SS4, 4)
@@ -44,6 +44,20 @@ def outputRecord(ELEMENT_ACC_RES_SS4, AA_RES_SS4, OA_RES_SS4, KAPPA_RES_SS4,
     
     # Write to file with formatted output
     with open(path1, 'w') as f:
+        # Write metadata at the top
+        if dataset_name:
+            f.write(f"Dataset: {dataset_name}\n")
+        if hyperparameters:
+            if isinstance(hyperparameters, dict):
+                for key, value in hyperparameters.items():
+                    f.write(f"{key}: {value}\n")
+            else:
+                f.write(f"Hyperparameters: {hyperparameters}\n")
+        
+        # Write separator after metadata
+        if dataset_name or hyperparameters:
+            f.write("=" * 80 + "\n\n")
+        
         # Write header
         f.write("\t".join(column_headers) + "\n")
         

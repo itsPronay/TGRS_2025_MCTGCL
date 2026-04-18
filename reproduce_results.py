@@ -404,6 +404,9 @@ if __name__ == '__main__':
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
+    # Define hyperparameters
+    patch_size = 13
+    
     nDataSet = args.number_train
     if args.dataset == 'HC':
         CLASS_NUM = 6
@@ -467,4 +470,6 @@ if __name__ == '__main__':
                               ELEMENT_PRE_RES_SS4, AP_RES_SS4,
                               TRAINING_TIME_RES_SS4, TESTING_TIME_RES_SS4,
                               classes_num, ITER,
-                              'patch_{}_10_{}_result_train_iter_times_{}shot_CRU_Chikusei_iter_10_true_knn_{}_{}.txt'.format(13,args.dataset,10,temperature,a))
+                              'patch_{}_10_Dataset{}_HyperParameter{}_result_train_iter_times_{}shot_CRU_Chikusei_iter_10_true_knn_{}_{}.txt'.format(13,args.dataset,args.r, 10,temperature,a),
+                              dataset_name=args.dataset,
+                              hyperparameters={'patch_size': patch_size, 'r': args.r})
