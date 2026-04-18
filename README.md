@@ -28,7 +28,7 @@ Additionally, we develop a lightweight dual-branch CNN-Transformer (LDCT) networ
 
 ## Training and Test Process
 1. Prepare the training and test data as operated in the paper.
-2. Run the 'my_Nili_train.py' to reproduce the MCTGCL results on the Nili Fossae data set.
+2. Run the 'reproduce_results.py' to reproduce the MCTGCL results
 
 ## DataSet Download: [HyMars: Mars Hyperspectral Image Classification Benchmark Datasets](https://www.scidb.cn/en/detail?dataSetId=4ff0774d45464f239a73f37796f7a786)
 --
