@@ -354,7 +354,7 @@ def acc_reports(y_test, y_pred_test):
     return classification, oa*100, confusion, each_acc*100, aa*100, kappa*100
 
 if __name__ == '__main__':
-    nDataSet = 1
+    nDataSet = 10
     CLASS_NUM=9
     acc = np.zeros([nDataSet, 1])
     A = np.zeros([nDataSet, CLASS_NUM])
