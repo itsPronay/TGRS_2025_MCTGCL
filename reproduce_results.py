@@ -17,6 +17,7 @@ from sklearn.neighbors import kneighbors_graph
 import  supervised_contrastive_loss
 import os
 import argparse
+import random
 
 parser = argparse.ArgumentParser(description='MCTGCL')
 
@@ -90,7 +91,7 @@ def createImageCubes(X, y, windowSize=5, removeZeroLabels = True):
 def splitTrainTestSet(X, y, testRatio, randomState=345):
     train_indices = np.zeros_like(y)
     test_indices = np.zeros_like(y)+1
-    
+
     if args.dataset == 'HC':
         CLASS_NUM = 6
     else: 
@@ -399,6 +400,10 @@ def acc_reports(y_test, y_pred_test):
     return classification, oa*100, confusion, each_acc*100, aa*100, kappa*100
 
 if __name__ == '__main__':
+    # Ensure deterministic behavior in PyTorch
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    
     nDataSet = args.number_train
     if args.dataset == 'HC':
         CLASS_NUM = 6
@@ -416,7 +421,6 @@ if __name__ == '__main__':
     for iDataSet  in range(nDataSet):
         torch.manual_seed(seeds[iDataSet])
         torch.cuda.manual_seed_all(seeds[iDataSet])
-        import random
         random.seed(seeds[iDataSet])
         np.random.seed(seeds[iDataSet])
         train_loader, test_loader, all_data_loader,data_labeled_loader,y_all= create_data_loader()

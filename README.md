@@ -18,7 +18,7 @@ Download datasets using this link
 !wget -O NiliFossae.mat "https://download.scidb.cn/download?fileId=ae13bf8fe050b5114fef0f1c03934fe4&path=/V2/NiliFossae.mat&fileName=NiliFossae.mat"
 !wget -O NiliFossae_gt.mat "https://download.scidb.cn/download?fileId=2d45d15af1232726c00fea6108fa2eee&path=/V2/NiliFossae_gt.mat&fileName=NiliFossae_gt.mat"
 
-!wget -O Holden.mat "https://download.scidb.cn/download?fileId=2cba3da0e9e8fd14705f67317bacde15&path=/V2/holden.mat&fileName=holden.mat".
+!wget -O Holden.mat "https://download.scidb.cn/download?fileId=2cba3da0e9e8fd14705f67317bacde15&path=/V2/holden.mat&fileName=holden.mat"
 !wget -O Holden_gt.mat "https://download.scidb.cn/download?fileId=a77d0577e822760e90614dc529af07c7&path=/V2/holden_gt.mat&fileName=holden_gt.mat"
 ```
 
