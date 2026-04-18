@@ -15,12 +15,32 @@ from mctgcl  import mctgcl
 from GCN_model import *
 from sklearn.neighbors import kneighbors_graph
 import  supervised_contrastive_loss
-import os 
+import os
+import argparse
+import random
+
+parser = argparse.ArgumentParser(description='MCTGCL')
+
+parser.add_argument('--dataset', choices=['UP', 'NF', 'HO'], default='NF', help='dataset name')
+parser.add_argument('--number_train', type=int, default=10, help='Number of train iteration')
+parser.add_argument('--r', type=int, default=2.5, help='hyperparameter that regulates the channel dimension used in convolution within PConv') # NF=2.5 else 3
+
+args = parser.parse_args()
+
 
 def loadData():
-    # 读入数据
-    data = sio.loadmat(os.path.join(os.getcwd(), 'NiliFossae.mat'))['NiliFossae']
-    labels = sio.loadmat(os.path.join(os.getcwd(), 'NiliFossae_gt.mat'))['NiliFossae_gt']
+
+    if args.dataset == 'NF':
+        data = sio.loadmat(os.path.join(os.getcwd(), 'NiliFossae.mat'))['NiliFossae']
+        labels = sio.loadmat(os.path.join(os.getcwd(), 'NiliFossae_gt.mat'))['NiliFossae_gt']
+    elif args.dataset == 'UP':
+        data = sio.loadmat(os.path.join(os.getcwd(), 'Utopia.mat'))['Utopia']
+        labels = sio.loadmat(os.path.join(os.getcwd(), 'Utopia_gt.mat'))['Utopia_gt']
+    elif args.dataset == 'HO':
+        data = sio.loadmat(os.path.join(os.getcwd(), 'Holden.mat'))['holden']
+        labels = sio.loadmat(os.path.join(os.getcwd(), 'Holden_gt.mat'))['holden_gt']
+    else:
+        raise ValueError('Wrong Dataset')
 
     return data, labels
 
@@ -71,7 +91,13 @@ def createImageCubes(X, y, windowSize=5, removeZeroLabels = True):
 def splitTrainTestSet(X, y, testRatio, randomState=345):
     train_indices = np.zeros_like(y)
     test_indices = np.zeros_like(y)+1
-    for i in range(0, 9):
+
+    if args.dataset == 'HO':
+        CLASS_NUM = 6
+    else: 
+        CLASS_NUM=9
+
+    for i in range(0, CLASS_NUM):
         indices = np.argwhere(y == i)
         #print(len(indices))
         np.random.shuffle(indices)
@@ -152,8 +178,14 @@ def create_data_loader():
                                                 shuffle=False,
                                                 num_workers=0,
                                               )
+    
+    if args.dataset == 'HO':
+        CLASS_NUM = 6
+    else: 
+        CLASS_NUM=9
+
     data_labeled_loader=torch.utils.data.DataLoader(dataset=trainset,
-                                               batch_size=test_ratio*9,
+                                               batch_size=test_ratio*CLASS_NUM,
                                                shuffle=False,
                                                num_workers=0,
                                                )
@@ -227,8 +259,14 @@ def train(train_loader, data_labeled_loader,epochs):
 
     # 使用GPU训练，可以在菜单 "代码执行工具" -> "更改运行时类型" 里进行设置
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    if args.dataset == 'HO':
+        CLASS_NUM = 6
+    else: 
+        CLASS_NUM=9
+
     # 网络放到GPU上
-    net = mctgcl(num_classes=9, num_tokens=121).to(device)
+    net = mctgcl(num_classes=CLASS_NUM, num_tokens=121, r=args.r).to(device)
 
     src_gcn_module = GCN_M(nfeat=128,
                             nhid=128,
@@ -273,7 +311,7 @@ def train(train_loader, data_labeled_loader,epochs):
             # 遍历查找每个数值 i 的位置
             out_class_list = []
             out_class2_list = []
-            for i in range(9):  # i 从 0 到 8
+            for i in range(CLASS_NUM):  # i 从 0 到 CLASS_NUM-1
                 indices = torch.nonzero(target_all == i).squeeze()  # 使用 torch.nonzero() 找到所有等于 i 的索引
                 out_class=outputs_tar[indices,:].mean(dim=0)
                 out_class2=outputs_src[indices,:].mean(dim=0)
@@ -283,7 +321,7 @@ def train(train_loader, data_labeled_loader,epochs):
             out_class2_tensor = torch.stack(out_class2_list, dim=0)
             features_class=torch.cat((out_class_tensor,out_class2_tensor),dim=0)
             features_class=features_class.unsqueeze(1)
-            labels=torch.arange(9)
+            labels=torch.arange(CLASS_NUM)
             labels_class=torch.cat((labels,labels),dim=0)
             f_contrastive_loss=contrastiveLoss(features_class,labels_class)
             #print(f_contrastive_loss)
@@ -313,7 +351,13 @@ def test(device, net, test_loader):
     y_pred_test = 0
     y_test = 0
     features=0
-    features = np.zeros([1,9])
+
+    if args.dataset == 'HO':
+        CLASS_NUM = 6
+    else: 
+        CLASS_NUM=9
+    
+    features = np.zeros([1,CLASS_NUM])
     for inputs, labels in test_loader:
         inputs = inputs.to(device)
         outputs,_ = net(inputs)
@@ -342,9 +386,11 @@ def AA_andEachClassAccuracy(confusion_matrix):
 
 def acc_reports(y_test, y_pred_test):
 
-    target_names = ['1', '2', '3', '4'
-        , '5', '6','7'
-        , '8', '9']
+    if args.dataset != 'HO':
+        target_names = ['1', '2', '3', '4', '5', '6','7' , '8', '9']
+    else:
+        target_names = ['1', '2', '3', '4', '5', '6']
+    
     classification = classification_report(y_test, y_pred_test, digits=4, target_names=target_names)
     oa = accuracy_score(y_test, y_pred_test)
     confusion = confusion_matrix(y_test, y_pred_test)
@@ -354,8 +400,18 @@ def acc_reports(y_test, y_pred_test):
     return classification, oa*100, confusion, each_acc*100, aa*100, kappa*100
 
 if __name__ == '__main__':
-    nDataSet = 10
-    CLASS_NUM=9
+    # Ensure deterministic behavior in PyTorch
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    
+    # Define hyperparameters
+    patch_size = 13
+    
+    nDataSet = args.number_train
+    if args.dataset == 'HO':
+        CLASS_NUM = 6
+    else: 
+        CLASS_NUM=9
     acc = np.zeros([nDataSet, 1])
     A = np.zeros([nDataSet, CLASS_NUM])
     P = np.zeros([nDataSet, CLASS_NUM])
@@ -368,7 +424,6 @@ if __name__ == '__main__':
     for iDataSet  in range(nDataSet):
         torch.manual_seed(seeds[iDataSet])
         torch.cuda.manual_seed_all(seeds[iDataSet])
-        import random
         random.seed(seeds[iDataSet])
         np.random.seed(seeds[iDataSet])
         train_loader, test_loader, all_data_loader,data_labeled_loader,y_all= create_data_loader()
@@ -415,4 +470,6 @@ if __name__ == '__main__':
                               ELEMENT_PRE_RES_SS4, AP_RES_SS4,
                               TRAINING_TIME_RES_SS4, TESTING_TIME_RES_SS4,
                               classes_num, ITER,
-                              'patch_{}_10_Nili_result_train_iter_times_{}shot_CRU_Chikusei_iter_10_true_knn_{}_{}.txt'.format(13,10,temperature,a))
+                              'patch_{}_10_Dataset{}_HyperParameter{}_result_train_iter_times_{}shot_CRU_Chikusei_iter_10_true_knn_{}_{}.txt'.format(13,args.dataset,args.r, 10,temperature,a),
+                              dataset_name=args.dataset,
+                              hyperparameters={'patch_size': patch_size, 'r': args.r})

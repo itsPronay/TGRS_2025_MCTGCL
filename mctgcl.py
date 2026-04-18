@@ -3,6 +3,8 @@ from torch import nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Reduce
+
+
 class EMA1(nn.Module):
     def __init__(self, channels, c2=None, factor=32):
         super(EMA1, self).__init__()
@@ -195,6 +197,7 @@ class mctgcl(nn.Module):
         num_tokens = 0,
         dim = 64,
         depth = 2,
+        r = 2.5,
         heads = 8,
         dim_head = 8,
         mlp_dim = 512,
@@ -208,7 +211,7 @@ class mctgcl(nn.Module):
             nn.Conv3d(in_channels=1, out_channels=8, kernel_size=(3, 3, 3)),
             nn.ReLU(),
         )
-        self.pConv=nn.Sequential(Partial_conv3(dim=224, n_div=2.5, forward='split_cat'),
+        self.pConv=nn.Sequential(Partial_conv3(dim=224, n_div=r, forward='split_cat'),
                                  nn.ReLU())
         self.conv2d = nn.Sequential(
             nn.Conv2d(in_channels=8*28, out_channels=64, kernel_size=(1, 1)),
