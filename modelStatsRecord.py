@@ -22,7 +22,41 @@ def outputRecord(ELEMENT_ACC_RES_SS4, AA_RES_SS4, OA_RES_SS4, KAPPA_RES_SS4,
         print_matrix[i, ITER] = "{:.2f}".format(element_mean[i] * 100) + " ± " + "{:.2f}".format(element_std[i] * 100)
     for i in range((CATEGORY * 2 + 4), (CATEGORY * 2 + 6)):
         print_matrix[i, ITER] = "{:.2f}".format(element_mean[i]) + " ± " + "{:.2f}".format(element_std[i])
-    np.savetxt(path1, print_matrix.astype(str), fmt='%s', delimiter="\t", newline='\n')
+    
+    # Create row labels for better readability
+    row_labels = []
+    for i in range(CATEGORY):
+        row_labels.append(f"Class {i+1} Accuracy")
+    row_labels.append("Average Accuracy (AA)")
+    row_labels.append("Overall Accuracy (OA)")
+    row_labels.append("Kappa Coefficient")
+    for i in range(CATEGORY):
+        row_labels.append(f"Class {i+1} Precision")
+    row_labels.append("Average Precision (AP)")
+    row_labels.append("Training Time (s)")
+    row_labels.append("Testing Time (s)")
+    
+    # Create column headers
+    column_headers = ["Metric"]
+    for i in range(ITER):
+        column_headers.append(f"Iter {i+1}")
+    column_headers.append("Mean ± Std")
+    
+    # Write to file with formatted output
+    with open(path1, 'w') as f:
+        # Write header
+        f.write("\t".join(column_headers) + "\n")
+        
+        # Write section separators and data
+        for i in range(CATEGORY * 2 + 6):
+            row_data = [row_labels[i]]
+            for j in range(ITER + 1):
+                row_data.append(str(print_matrix[i, j]))
+            f.write("\t".join(row_data) + "\n")
+            
+            # Add separator between sections
+            if i == CATEGORY - 1 or i == CATEGORY + 2 or i == CATEGORY * 2 + 2:
+                f.write("-" * 80 + "\n")
 
 
 def outputStats(KAPPA_AE, OA_AE, AA_AE, ELEMENT_ACC_AE, TRAINING_TIME_AE, TESTING_TIME_AE, history, loss_and_metrics, CATEGORY, path1, path2):
