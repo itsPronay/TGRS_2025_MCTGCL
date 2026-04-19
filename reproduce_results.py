@@ -255,7 +255,7 @@ def aff_to_adj(last_layer_data_src):
 # effects on performance. The optimal
 # results were achieved with the pairs λ and ϵ (temperature) set to (0.01,
 # 0.1), (0.5, 1), and (0.1, 0.5) for the HC, NF, and UP datasets,
-if args.dataset == 'HC':
+if args.dataset == 'HO':
     temperature = 0.1
     a = 0.01
 elif args.dataset == 'NF':
