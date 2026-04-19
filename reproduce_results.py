@@ -486,4 +486,4 @@ if __name__ == '__main__':
                               classes_num, ITER,
                               'patch_{}_10_Dataset{}_HyperParameter{}_result_train_iter_times_{}shot_CRU_Chikusei_iter_10_true_knn_{}_{}.txt'.format(13,args.dataset,args.r, 10,temperature,a),
                               dataset_name=args.dataset,
-                              hyperparameters={'patch_size': patch_size, 'r': args.r})
+                              hyperparameters={'patch_size': patch_size, 'r': args.r, 'temperature (ϵ)': temperature, 'hyperparameter (λ)': a})
