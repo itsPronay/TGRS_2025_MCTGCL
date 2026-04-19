@@ -249,8 +249,22 @@ def aff_to_adj(last_layer_data_src):
     adj_nei = torch.from_numpy(adj_nei).cuda(1).to(torch.float32)
     return adj_nei
 
-temperature = 1
-a=0.5
+# we examined the weight hyperparameter λ and the
+# temperature factor ϵ. We selected values for λ and ϵ from
+# the set {0.01,0.05,0.1,0.5,1}, and investigated their mutual
+# effects on performance. The optimal
+# results were achieved with the pairs λ and ϵ (temperature) set to (0.01,
+# 0.1), (0.5, 1), and (0.1, 0.5) for the HC, NF, and UP datasets,
+if args.dataset == 'HC':
+    temperature = 0.1
+    a = 0.01
+elif args.dataset == 'NF':
+    temperature = 1
+    a = 0.5
+elif args.dataset == 'UP':
+    temperature = 0.5
+    a = 0.1
+
 def get_parameter_number(net):
     total_num = sum(p.numel() for p in net.parameters())
     trainable_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
