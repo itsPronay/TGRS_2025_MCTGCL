@@ -29,29 +29,41 @@ args = parser.parse_args()
 
 
 def loadData():
-
+    print(f"[DEBUG] loadData() - attempting to load {args.dataset} dataset")
     if args.dataset == 'NF':
+        print(f"[DEBUG] loadData() - loading NiliFossae.mat")
         data = sio.loadmat(os.path.join(os.getcwd(), 'NiliFossae.mat'))['NiliFossae']
+        print(f"[DEBUG] loadData() - ✓ NiliFossae.mat loaded")
         labels = sio.loadmat(os.path.join(os.getcwd(), 'NiliFossae_gt.mat'))['NiliFossae_gt']
+        print(f"[DEBUG] loadData() - ✓ NiliFossae_gt.mat loaded")
     elif args.dataset == 'UP':
+        print(f"[DEBUG] loadData() - loading Utopia.mat")
         data = sio.loadmat(os.path.join(os.getcwd(), 'Utopia.mat'))['Utopia']
+        print(f"[DEBUG] loadData() - ✓ Utopia.mat loaded")
         labels = sio.loadmat(os.path.join(os.getcwd(), 'Utopia_gt.mat'))['Utopia_gt']
+        print(f"[DEBUG] loadData() - ✓ Utopia_gt.mat loaded")
     elif args.dataset == 'HO':
+        print(f"[DEBUG] loadData() - loading Holden.mat")
         data = sio.loadmat(os.path.join(os.getcwd(), 'Holden.mat'))['holden']
+        print(f"[DEBUG] loadData() - ✓ Holden.mat loaded")
         labels = sio.loadmat(os.path.join(os.getcwd(), 'Holden_gt.mat'))['holden_gt']
+        print(f"[DEBUG] loadData() - ✓ Holden_gt.mat loaded")
     else:
         raise ValueError('Wrong Dataset')
-
+    print(f"[DEBUG] loadData() - ✓ COMPLETE (data shape: {data.shape}, labels shape: {labels.shape})")
     return data, labels
 
 # 对高光谱数据 X 应用 PCA 变换
 def applyPCA(X, numComponents):
-
+    print(f"[DEBUG] applyPCA() - input shape: {X.shape}")
     newX = np.reshape(X, (-1, X.shape[2]))
+    print(f"[DEBUG] applyPCA() - reshaped to: {newX.shape}")
     pca = PCA(n_components=numComponents, whiten=True)
+    print(f"[DEBUG] applyPCA() - PCA fitting...")
     newX = pca.fit_transform(newX)
+    print(f"[DEBUG] applyPCA() - ✓ PCA fit_transform done, shape: {newX.shape}")
     newX = np.reshape(newX, (X.shape[0], X.shape[1], numComponents))
-
+    print(f"[DEBUG] applyPCA() - ✓ COMPLETE, output shape: {newX.shape}")
     return newX
 
 # 对单个像素周围提取 patch 时，边缘像素就无法取了，因此，给这部分像素进行 padding 操作
@@ -66,13 +78,16 @@ def padWithZeros(X, margin=2):
 
 # 在每个像素周围提取 patch ，然后创建成符合 keras 处理的格式
 def createImageCubes(X, y, windowSize=5, removeZeroLabels = True):
-
+    print(f"[DEBUG] createImageCubes() - input X shape: {X.shape}, windowSize: {windowSize}")
     # 给 X 做 padding
     margin = int((windowSize - 1) / 2)
+    print(f"[DEBUG] createImageCubes() - padding X with margin: {margin}")
     zeroPaddedX = padWithZeros(X, margin=margin)
+    print(f"[DEBUG] createImageCubes() - ✓ padded, new shape: {zeroPaddedX.shape}")
     # split patches
     patchesData = np.zeros((X.shape[0] * X.shape[1], windowSize, windowSize, X.shape[2]))
     patchesLabels = np.zeros((X.shape[0] * X.shape[1]))
+    print(f"[DEBUG] createImageCubes() - creating patches from {X.shape[0]} x {X.shape[1]} pixels...")
     patchIndex = 0
     for r in range(margin, zeroPaddedX.shape[0] - margin):
         for c in range(margin, zeroPaddedX.shape[1] - margin):
@@ -80,11 +95,14 @@ def createImageCubes(X, y, windowSize=5, removeZeroLabels = True):
             patchesData[patchIndex, :, :, :] = patch
             patchesLabels[patchIndex] = y[r-margin, c-margin]
             patchIndex = patchIndex + 1
+    print(f"[DEBUG] createImageCubes() - ✓ created {patchIndex} patches")
     if removeZeroLabels:
+        print(f"[DEBUG] createImageCubes() - removing zero labels...")
         patchesData = patchesData[patchesLabels>0,:,:,:]
         patchesLabels = patchesLabels[patchesLabels>0]
         patchesLabels -= 1
-
+        print(f"[DEBUG] createImageCubes() - ✓ zero labels removed, remaining patches: {len(patchesLabels)}")
+    print(f"[DEBUG] createImageCubes() - ✓ COMPLETE, output shape: {patchesData.shape}")
     return patchesData, patchesLabels
 
 
@@ -249,18 +267,21 @@ def aff_to_adj(last_layer_data_src):
     adj_nei = torch.from_numpy(adj_nei).cuda(1).to(torch.float32)
     return adj_nei
 
-# As depicted in Fig. 12, the optimal
+# we examined the weight hyperparameter λ and the
+# temperature factor ϵ. We selected values for λ and ϵ from
+# the set {0.01,0.05,0.1,0.5,1}, and investigated their mutual
+# effects on performance. The optimal
 # results were achieved with the pairs λ and ϵ (temperature) set to (0.01,
 # 0.1), (0.5, 1), and (0.1, 0.5) for the HC, NF, and UP datasets,
 if args.dataset == 'HC':
-    temperature = 0.01
-    a = 0.1
-elif args.dataset == 'NF':
-    temperature = 0.5
-    a = 1
-elif args.dataset == 'UP':
     temperature = 0.1
+    a = 0.01
+elif args.dataset == 'NF':
+    temperature = 1
     a = 0.5
+elif args.dataset == 'UP':
+    temperature = 0.5
+    a = 0.1
 
 def get_parameter_number(net):
     total_num = sum(p.numel() for p in net.parameters())
@@ -269,22 +290,30 @@ def get_parameter_number(net):
 def train(train_loader, data_labeled_loader,epochs):
 
     # 使用GPU训练，可以在菜单 "代码执行工具" -> "更改运行时类型" 里进行设置
+    print(f"[DEBUG] train() - STARTING, epochs: {epochs}")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"[DEBUG] train() - device: {device}")
 
     if args.dataset == 'HO':
         CLASS_NUM = 6
     else: 
         CLASS_NUM=9
+    print(f"[DEBUG] train() - CLASS_NUM: {CLASS_NUM}")
 
     # 网络放到GPU上
+    print(f"[DEBUG] train() - creating mctgcl model...")
     net = mctgcl(num_classes=CLASS_NUM, num_tokens=121, r=args.r).to(device)
+    print(f"[DEBUG] train() - ✓ mctgcl model created")
 
+    print(f"[DEBUG] train() - creating GCN_M model...")
     src_gcn_module = GCN_M(nfeat=128,
                             nhid=128,
                             nclass=1,
                             dropout=0.3).to(device)
+    print(f"[DEBUG] train() - ✓ GCN_M model created")
 
     src_optim = optim.Adam(src_gcn_module.parameters(), lr=0.001)
+    print(f"[DEBUG] train() - ✓ optimizers created")
 
     
     print(device)
@@ -292,30 +321,45 @@ def train(train_loader, data_labeled_loader,epochs):
     criterion = nn.CrossEntropyLoss()
     # 初始化优化器
     optimizer = optim.Adam(net.parameters(), lr=0.001)
+    print(f"[DEBUG] train() - ✓ criterion and optimizers ready")
     # 开始训练
+    print(f"[DEBUG] train() - starting training loop...")
     total_loss = 0
     for epoch in range(epochs):
+        print(f"[DEBUG] train() - EPOCH {epoch+1}/{epochs}")
         net.train()
+        print(f"[DEBUG] train() - getting labeled data...")
         data_labeled=next(iter(data_labeled_loader))
         data_all,target_all=data_labeled[0].to(device),data_labeled[1]
    
         data_all_aug=torch.flip(data_all.clone().permute(0,1,2,4,3), dims=[3])
 
         for i, (data, target) in enumerate(train_loader):
+            if i % 10 == 0:
+                print(f"[DEBUG] train() - batch {i}")
             data, target = data.to(device), target.to(device)
+            print(f"[DEBUG] train() - 1. forward on data")
             # 正向传播 +　反向传播 + 优化
             # 通过输入得到预测的输出
             outputs,_ = net(data)
+            print(f"[DEBUG] train() - 2. forward on data_all")
             # GCN_model
             #计算每个类的均值
             outputs_all,features_all=net(data_all)
+            print(f"[DEBUG] train() - 3. aff_to_adj (src)")
             src_adj_nei = aff_to_adj(features_all).to(device)
+            print(f"[DEBUG] train() - 4. GCN forward (src)")
             outputs_src = src_gcn_module(features_all,  src_adj_nei)
+            print(f"[DEBUG] train() - 5. normalize src")
             outputs_src = F.normalize(outputs_src, dim=-1)
 
+            print(f"[DEBUG] train() - 6. forward on data_all_aug")
             outputs_all_aug,features_all_aug=net(data_all_aug)
+            print(f"[DEBUG] train() - 7. aff_to_adj (tar)")
             tar_adj_nei = aff_to_adj(features_all_aug).to(device)
+            print(f"[DEBUG] train() - 8. GCN forward (tar)")
             outputs_tar = src_gcn_module(features_all_aug, tar_adj_nei)
+            print(f"[DEBUG] train() - 9. normalize tar")
             outputs_tar = F.normalize(outputs_tar, dim=-1)
 
             contrastiveLoss = supervised_contrastive_loss.SupConLoss(temperature)
@@ -356,9 +400,11 @@ def train(train_loader, data_labeled_loader,epochs):
     return net, device
 
 def test(device, net, test_loader):
+    print(f"[DEBUG] test() - STARTING")
     count = 0
     # 模型测试
     net.eval()
+    print(f"[DEBUG] test() - ✓ model set to eval mode")
     y_pred_test = 0
     y_test = 0
     features=0
@@ -369,10 +415,18 @@ def test(device, net, test_loader):
         CLASS_NUM=9
     
     features = np.zeros([1,CLASS_NUM])
+    print(f"[DEBUG] test() - starting test loop...")
+    batch_num = 0
     for inputs, labels in test_loader:
+        batch_num += 1
+        if batch_num % 20 == 0:
+            print(f"[DEBUG] test() - batch {batch_num}")
         inputs = inputs.to(device)
+        print(f"[DEBUG] test() - 1. forward on batch")
         outputs,_ = net(inputs)
+        print(f"[DEBUG] test() - 2. appending features")
         features=np.append(features, outputs.detach().cpu().numpy(),axis=0)
+        print(f"[DEBUG] test() - 3. computing argmax")
         outputs = np.argmax(outputs.detach().cpu().numpy(), axis=1)
         if count == 0:
             y_pred_test = outputs
@@ -381,10 +435,16 @@ def test(device, net, test_loader):
         else:
             y_pred_test = np.concatenate((y_pred_test, outputs))
             y_test = np.concatenate((y_test, labels))
+    print(f"[DEBUG] test() - ✓ test loop completed")
+    print(f"[DEBUG] test() - removing first dummy features row...")
     features=features[1:,:]
+    print(f"[DEBUG] test() - saving features and labels to .mat files...")
     sio.savemat('test_features_all_Nili.mat', {'test_features_all': features})
+    print(f"[DEBUG] test() - ✓ test_features_all_Nili.mat saved")
     sio.savemat('labels_Nili.mat', {'labels': y_test})
-    print(features.shape,y_test.shape)
+    print(f"[DEBUG] test() - ✓ labels_Nili.mat saved")
+    print(f"[DEBUG] test() - features shape: {features.shape}, y_test shape: {y_test.shape}")
+    print(f"[DEBUG] test() - ✓ COMPLETE")
     return y_pred_test, y_test
 
 def AA_andEachClassAccuracy(confusion_matrix):
@@ -433,50 +493,95 @@ if __name__ == '__main__':
 
     seeds = [1330, 1220, 1336, 1337, 1224, 1236, 1226, 1235, 1233, 1229]
     for iDataSet  in range(nDataSet):
+        print(f"\n{'='*80}")
+        print(f"[DEBUG] ITERATION {iDataSet+1}/{nDataSet} - STARTING")
+        print(f"[DEBUG] seed: {seeds[iDataSet]}")
+        print(f"{'='*80}")
+        
         torch.manual_seed(seeds[iDataSet])
         torch.cuda.manual_seed_all(seeds[iDataSet])
         random.seed(seeds[iDataSet])
         np.random.seed(seeds[iDataSet])
+        print(f"[DEBUG] iDataSet {iDataSet+1} - loading data...")
+        
         train_loader, test_loader, all_data_loader,data_labeled_loader,y_all= create_data_loader()
+        print(f"[DEBUG] iDataSet {iDataSet+1} - ✓ data loaders created")
+        
+        print(f"[DEBUG] iDataSet {iDataSet+1} - training...")
         tic1 = time.perf_counter()
         net, device = train(train_loader,data_labeled_loader, epochs=100)
+        print(f"[DEBUG] iDataSet {iDataSet+1} - ✓ training completed")
         # 只保存模型参数
+        print(f"[DEBUG] iDataSet {iDataSet+1} - saving model...")
         torch.save(net.state_dict(), 'MCTGCL_params.pth')
+        print(f"[DEBUG] iDataSet {iDataSet+1} - ✓ model saved")
         toc1 = time.perf_counter()
+        
+        print(f"[DEBUG] iDataSet {iDataSet+1} - testing...")
         tic2 = time.perf_counter()
         y_pred_test, y_test = test(device, net, test_loader)
+        print(f"[DEBUG] iDataSet {iDataSet+1} - ✓ testing completed, y_pred shape: {y_pred_test.shape}")
         toc2 = time.perf_counter()
         # 评价指标
+        print(f"[DEBUG] iDataSet {iDataSet+1} - computing metrics...")
         classification, oa, confusion, each_acc, aa, kappa = acc_reports(y_test, y_pred_test)
+        print(f"[DEBUG] iDataSet {iDataSet+1} - ✓ metrics computed: OA={oa:.2f}, AA={aa:.2f}, Kappa={kappa:.2f}")
         classification = str(classification)
         Training_Time = toc1 - tic1
         Test_time = toc2 - tic2
         print(each_acc.shape)
         acc[iDataSet] = oa/100
+        print(f"[DEBUG] iDataSet {iDataSet+1} - storing matrices...")
         C = metrics.confusion_matrix(y_test, y_pred_test)
         A[iDataSet, :] = each_acc/100
         P[iDataSet, :] = each_acc/100
+        print(f"[DEBUG] iDataSet {iDataSet+1} - ✓ matrices stored")
     
         k[iDataSet] = metrics.cohen_kappa_score(y_test, y_pred_test)
         training_time[iDataSet] = Training_Time
         test_time[iDataSet] = Test_time
         
+        print(f"[DEBUG] iDataSet {iDataSet+1} - generating classification maps...")
         get_cls_map.get_cls_map(net, device, all_data_loader, y_all,oa)
+        print(f"[DEBUG] iDataSet {iDataSet+1} - ✓ ITERATION COMPLETE")
 
 
 
 
+    print(f"\n{'='*80}")
+    print(f"[DEBUG] ALL ITERATIONS COMPLETED - aggregating results...")
+    print(f"{'='*80}")
+    
+    print(f"[DEBUG] transposing matrices...")
     ELEMENT_ACC_RES_SS4 = np.transpose(A)
+    print(f"[DEBUG] ✓ ELEMENT_ACC_RES_SS4 shape: {ELEMENT_ACC_RES_SS4.shape}")
+    
     AA_RES_SS4 = np.mean(ELEMENT_ACC_RES_SS4,0)
+    print(f"[DEBUG] ✓ AA_RES_SS4 shape: {AA_RES_SS4.shape}")
+    
     OA_RES_SS4 = np.transpose(acc)
+    print(f"[DEBUG] ✓ OA_RES_SS4 shape: {OA_RES_SS4.shape}")
+    
     KAPPA_RES_SS4 = np.transpose(k)
+    print(f"[DEBUG] ✓ KAPPA_RES_SS4 shape: {KAPPA_RES_SS4.shape}")
+    
     ELEMENT_PRE_RES_SS4 = np.transpose(P)
+    print(f"[DEBUG] ✓ ELEMENT_PRE_RES_SS4 shape: {ELEMENT_PRE_RES_SS4.shape}")
+    
     AP_RES_SS4= np.mean(ELEMENT_PRE_RES_SS4,0)
+    print(f"[DEBUG] ✓ AP_RES_SS4 shape: {AP_RES_SS4.shape}")
+    
     TRAINING_TIME_RES_SS4 = np.transpose(training_time)
+    print(f"[DEBUG] ✓ TRAINING_TIME_RES_SS4 shape: {TRAINING_TIME_RES_SS4.shape}")
+    
     TESTING_TIME_RES_SS4 = np.transpose(test_time)
+    print(f"[DEBUG] ✓ TESTING_TIME_RES_SS4 shape: {TESTING_TIME_RES_SS4.shape}")
+    
     classes_num = CLASS_NUM
     ITER = nDataSet
+    print(f"[DEBUG] ✓ all matrices aggregated successfully")
 
+    print(f"[DEBUG] writing results to file...")
     modelStatsRecord.outputRecord(ELEMENT_ACC_RES_SS4, AA_RES_SS4, OA_RES_SS4, KAPPA_RES_SS4,
                               ELEMENT_PRE_RES_SS4, AP_RES_SS4,
                               TRAINING_TIME_RES_SS4, TESTING_TIME_RES_SS4,
@@ -484,3 +589,7 @@ if __name__ == '__main__':
                               'patch_{}_10_Dataset{}_HyperParameter{}_result_train_iter_times_{}shot_CRU_Chikusei_iter_10_true_knn_{}_{}.txt'.format(13,args.dataset,args.r, 10,temperature,a),
                               dataset_name=args.dataset,
                               hyperparameters={'patch_size': patch_size, 'r': args.r})
+    print(f"[DEBUG] ✓ results saved successfully")
+    print(f"\n{'='*80}")
+    print(f"[DEBUG] ✓✓✓ SCRIPT COMPLETED SUCCESSFULLY ✓✓✓")
+    print(f"{'='*80}\n")
