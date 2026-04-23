@@ -24,6 +24,7 @@ parser = argparse.ArgumentParser(description='MCTGCL')
 parser.add_argument('--dataset', choices=['UP', 'NF', 'HO'], default='NF', help='dataset name')
 parser.add_argument('--number_train', type=int, default=10, help='Number of train iteration')
 parser.add_argument('--r', type=int, default=2.5, help='hyperparameter that regulates the channel dimension used in convolution within PConv') # NF=2.5 else 3
+parser.add_argument('--seeds', type=str, default='1330, 1220, 1336, 1337, 1224, 1236, 1226, 1235, 1233, 1229', help='Comma-separated list of random seeds for each training iteration')
 
 args = parser.parse_args()
 
