@@ -434,7 +434,15 @@ if __name__ == '__main__':
     test_time = np.zeros([nDataSet, 1])
     best_predict_all = []
 
-    seeds = [1330, 1220, 1336, 1337, 1224, 1236, 1226, 1235, 1233, 1229]
+    seeds_str = args.seeds.replace(' ', '').split(',')
+    try:
+        seeds = [int(s) for s in seeds_str]
+    except ValueError:
+        print(f"[ERROR] Invalid seeds format. Please provide comma-separated integers. Got: {args.seeds}")
+        exit(1)
+
+    print(f"[DEBUG] Parsed seeds: {seeds}")
+
     for iDataSet  in range(nDataSet):
         torch.manual_seed(seeds[iDataSet])
         torch.cuda.manual_seed_all(seeds[iDataSet])
